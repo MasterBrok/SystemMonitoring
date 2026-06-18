@@ -7,21 +7,41 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_PATH: ./src/UI 
-
+  PROJECT_PATH: ./src/UI
+  PROJECT_NAME: SystemMonitoring
+  
 jobs:
   build:
-    name: Build WPF for ${{ matrix.platform }}
+    name: Build ${{ matrix.type }} for ${{ matrix.platform }}
     runs-on: windows-latest
     
     strategy:
       matrix:
         platform: [x86, x64]
+        type: [framework-dependent, self-contained]
         include:
+          # تنظیمات برای Framework-Dependent
           - platform: x86
+            type: framework-dependent
             runtime: win-x86
+            self_contained: false
+            output_suffix: fd
           - platform: x64
+            type: framework-dependent
             runtime: win-x64
+            self_contained: false
+            output_suffix: fd
+          # تنظیمات برای Self-Contained
+          - platform: x86
+            type: self-contained
+            runtime: win-x86
+            self_contained: true
+            output_suffix: sc
+          - platform: x64
+            type: self-contained
+            runtime: win-x64
+            self_contained: true
+            output_suffix: sc
     
     steps:
     - name: Checkout code
@@ -35,36 +55,56 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ env.PROJECT_PATH }}
     
-    - name: Build WPF App for ${{ matrix.platform }}
+    - name: Get version from tag
+      id: get_version
       run: |
+        if ("${{ github.ref }}" -like "refs/tags/*") {
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+        } else {
+          $version = "dev-${{ github.run_number }}"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+      shell: powershell
+    
+    - name: Build and Publish (${{ matrix.type }} - ${{ matrix.platform }})
+      run: |
+        $outputPath = "./publish/${{ matrix.platform }}-${{ matrix.output_suffix }}"
+        
         dotnet publish ${{ env.PROJECT_PATH }} \
           -c Release \
           -r ${{ matrix.runtime }} \
-          --self-contained true \
+          --self-contained ${{ matrix.self_contained }} \
           -p:PublishSingleFile=false \
-          -p:IncludeNativeLibrariesForSelfExtract=true \
+          -p:IncludeNativeLibrariesForSelfExtract=${{ matrix.self_contained }} \
           -p:DebugType=None \
           -p:DebugSymbols=false \
-          -p:PublishReadyToRun=true \
+          -p:PublishReadyToRun=${{ matrix.self_contained }} \
           -p:UseAppHost=true \
-          --output ./publish/${{ matrix.platform }}
+          -p:Version=${{ env.VERSION }} \
+          --output $outputPath
+        
+        echo "OUTPUT_PATH=$outputPath" >> $env:GITHUB_ENV
+      shell: powershell
       working-directory: ${{ env.PROJECT_PATH }}
     
-    - name: Create ZIP archive for ${{ matrix.platform }}
+    - name: Create ZIP archive (${{ matrix.type }} - ${{ matrix.platform }})
       run: |
-        7z a -tzip ../WPF-App-${{ matrix.platform }}.zip ./publish/${{ matrix.platform }}/*
+        $zipName = "${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.output_suffix }}.zip"
+        7z a -tzip $zipName ./publish/${{ matrix.platform }}-${{ matrix.output_suffix }}/*
+        echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
       shell: powershell
       working-directory: ${{ env.PROJECT_PATH }}
     
     - name: Upload artifacts to workflow
       uses: actions/upload-artifact@v4
       with:
-        name: WPF-App-${{ matrix.platform }}
-        path: ${{ env.PROJECT_PATH }}/WPF-App-${{ matrix.platform }}.zip
+        name: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.output_suffix }}
+        path: ${{ env.PROJECT_PATH }}/${{ env.ZIP_NAME }}
         retention-days: 30
 
-  release:
-    name: Create Release and Upload Artifacts
+  create-release:
+    name: Create Release and Upload All Artifacts
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -75,14 +115,35 @@ jobs:
       with:
         path: ./artifacts
     
+    - name: List all artifacts
+      run: |
+        echo "=== All downloaded artifacts ==="
+        ls -la ./artifacts
+        echo "================================"
+        find ./artifacts -name "*.zip" -type f
+      shell: bash
+    
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./artifacts/*/*.zip
+        files: ./artifacts/**/*.zip
         tag_name: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
         generate_release_notes: true
+        body: |
+          ## 📦 Download Options
+          
+          ### 🖥️ Self-Contained (No .NET Runtime Required)
+          - **x64**: `SystemMonitoring-{version}-x64-sc.zip`
+          - **x86**: `SystemMonitoring-{version}-x86-sc.zip`
+          
+          ### 📦 Framework-Dependent (.NET 10 Runtime Required)
+          - **x64**: `SystemMonitoring-{version}-x64-fd.zip`
+          - **x86**: `SystemMonitoring-{version}-x86-fd.zip`
+          
+          > ⚠️ **Framework-Dependent** version requires .NET 10 Runtime installed on target machine.
+          > ✅ **Self-Contained** version includes everything needed to run.
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
