@@ -9,39 +9,20 @@ on:
 env:
   PROJECT_PATH: ./src/UI
   PROJECT_NAME: SystemMonitoring
-  
+
 jobs:
   build:
-    name: Build ${{ matrix.type }} for ${{ matrix.platform }}
+    name: Build WPF (${{ matrix.platform }})
     runs-on: windows-latest
     
     strategy:
       matrix:
         platform: [x86, x64]
-        type: [framework-dependent, self-contained]
         include:
-          # تنظیمات برای Framework-Dependent
           - platform: x86
-            type: framework-dependent
             runtime: win-x86
-            self_contained: false
-            output_suffix: fd
           - platform: x64
-            type: framework-dependent
             runtime: win-x64
-            self_contained: false
-            output_suffix: fd
-          # تنظیمات برای Self-Contained
-          - platform: x86
-            type: self-contained
-            runtime: win-x86
-            self_contained: true
-            output_suffix: sc
-          - platform: x64
-            type: self-contained
-            runtime: win-x64
-            self_contained: true
-            output_suffix: sc
     
     steps:
     - name: Checkout code
@@ -54,57 +35,49 @@ jobs:
     
     - name: Restore dependencies
       run: dotnet restore ${{ env.PROJECT_PATH }}
+      working-directory: ${{ github.workspace }}
     
-    - name: Get version from tag
-      id: get_version
+    - name: Publish WPF App (${{ matrix.platform }})
       run: |
-        if ("${{ github.ref }}" -like "refs/tags/*") {
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-        } else {
-          $version = "dev-${{ github.run_number }}"
-        }
-        echo "VERSION=$version" >> $env:GITHUB_ENV
-        echo "version=$version" >> $env:GITHUB_OUTPUT
-      shell: powershell
-    
-    - name: Build and Publish (${{ matrix.type }} - ${{ matrix.platform }})
-      run: |
-        $outputPath = "./publish/${{ matrix.platform }}-${{ matrix.output_suffix }}"
-        
+        # Publish با تنظیمات کامل برای Self-Contained
         dotnet publish ${{ env.PROJECT_PATH }} \
           -c Release \
           -r ${{ matrix.runtime }} \
-          --self-contained ${{ matrix.self_contained }} \
+          --self-contained true \
           -p:PublishSingleFile=false \
-          -p:IncludeNativeLibrariesForSelfExtract=${{ matrix.self_contained }} \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
           -p:DebugType=None \
           -p:DebugSymbols=false \
-          -p:PublishReadyToRun=${{ matrix.self_contained }} \
+          -p:PublishReadyToRun=true \
           -p:UseAppHost=true \
-          -p:Version=${{ env.VERSION }} \
-          --output $outputPath
+          -p:CopyLocalLockFileAssemblies=true \
+          -p:GenerateRuntimeConfigurationFiles=true \
+          --output ./publish/${{ matrix.platform }}
         
-        echo "OUTPUT_PATH=$outputPath" >> $env:GITHUB_ENV
-      shell: powershell
-      working-directory: ${{ env.PROJECT_PATH }}
+        # نمایش تعداد فایل‌های خروجی برای اطمینان
+        Write-Host "================================"
+        Write-Host "Files published for ${{ matrix.platform }}:"
+        Get-ChildItem ./publish/${{ matrix.platform }} -File | Measure-Object | Select-Object -ExpandProperty Count
+        Write-Host "================================"
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
     
-    - name: Create ZIP archive (${{ matrix.type }} - ${{ matrix.platform }})
+    - name: Zip the published files
       run: |
-        $zipName = "${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.output_suffix }}.zip"
-        7z a -tzip $zipName ./publish/${{ matrix.platform }}-${{ matrix.output_suffix }}/*
-        echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
-      shell: powershell
-      working-directory: ${{ env.PROJECT_PATH }}
+        7z a -tzip ${{ env.PROJECT_NAME }}-${{ matrix.platform }}.zip ./publish/${{ matrix.platform }}/*
+        Write-Host "ZIP created: ${{ env.PROJECT_NAME }}-${{ matrix.platform }}.zip"
+      shell: pwsh
+      working-directory: ${{ github.workspace }}
     
-    - name: Upload artifacts to workflow
+    - name: Upload ZIP artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.PROJECT_NAME }}-${{ env.VERSION }}-${{ matrix.platform }}-${{ matrix.output_suffix }}
-        path: ${{ env.PROJECT_PATH }}/${{ env.ZIP_NAME }}
+        name: ${{ env.PROJECT_NAME }}-${{ matrix.platform }}
+        path: ${{ github.workspace }}/${{ env.PROJECT_NAME }}-${{ matrix.platform }}.zip
         retention-days: 30
 
-  create-release:
-    name: Create Release and Upload All Artifacts
+  release:
+    name: Create Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -115,9 +88,9 @@ jobs:
       with:
         path: ./artifacts
     
-    - name: List all artifacts
+    - name: List downloaded files
       run: |
-        echo "=== All downloaded artifacts ==="
+        echo "Downloaded artifacts:"
         ls -la ./artifacts
         echo "================================"
         find ./artifacts -name "*.zip" -type f
@@ -133,17 +106,22 @@ jobs:
         prerelease: false
         generate_release_notes: true
         body: |
-          ## 📦 Download Options
+          ## 🚀 SystemMonitoring - Release ${{ github.ref_name }}
           
-          ### 🖥️ Self-Contained (No .NET Runtime Required)
-          - **x64**: `SystemMonitoring-{version}-x64-sc.zip`
-          - **x86**: `SystemMonitoring-{version}-x86-sc.zip`
+          ### 📦 Download
+          - **[SystemMonitoring-x64.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/SystemMonitoring-x64.zip)** - برای سیستم‌های ۶۴ بیتی
+          - **[SystemMonitoring-x86.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/SystemMonitoring-x86.zip)** - برای سیستم‌های ۳۲ بیتی
           
-          ### 📦 Framework-Dependent (.NET 10 Runtime Required)
-          - **x64**: `SystemMonitoring-{version}-x64-fd.zip`
-          - **x86**: `SystemMonitoring-{version}-x86-fd.zip`
+          ### ⚙️ System Requirements
+          - **Windows 10/11** (64-bit or 32-bit)
+          - **No .NET Runtime required** (Self-Contained)
           
-          > ⚠️ **Framework-Dependent** version requires .NET 10 Runtime installed on target machine.
-          > ✅ **Self-Contained** version includes everything needed to run.
+          ### 🔧 Installation
+          1. Download the ZIP file for your system
+          2. Extract the files
+          3. Run `SystemMonitoring.exe`
+          
+          ### 📝 Release Notes
+          ${{ github.event.head_commit.message }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
