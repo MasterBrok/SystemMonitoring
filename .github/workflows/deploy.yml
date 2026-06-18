@@ -4,10 +4,10 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -16,9 +16,7 @@ jobs:
     strategy:
       matrix:
         runtime: [win-x64, win-x86]
-        mode:
-          - self
-          - framework
+        mode: [self, framework]
 
     steps:
       - name: Checkout code
@@ -35,34 +33,53 @@ jobs:
       - name: Publish
         shell: pwsh
         run: |
-          if ("${{ matrix.mode }}" -eq "self") {
-            dotnet publish src/UI/UI.csproj `
-              -c Release `
-              -r ${{ matrix.runtime }} `
-              --self-contained true `
-              -p:PublishSingleFile=true `
-              -o publish/${{ matrix.runtime }}-${{ matrix.mode }}
-          }
-          else {
-            dotnet publish src/UI/UI.csproj `
-              -c Release `
-              -r ${{ matrix.runtime }} `
-              --self-contained false `
-              -p:PublishSingleFile=true `
-              -o publish/${{ matrix.runtime }}-${{ matrix.mode }}
-          }
+          $selfContained = "${{ matrix.mode }}" -eq "self"
 
-      - name: Zip output
+          $output = "publish/${{ matrix.runtime }}-${{ matrix.mode }}"
+
+          dotnet publish src/UI/UI.csproj `
+            -c Release `
+            -r ${{ matrix.runtime }} `
+            --self-contained $selfContained `
+            -p:PublishSingleFile=true `
+            -o $output
+
+      - name: Zip output (with clear naming)
         shell: pwsh
         run: |
+          $portable = "${{ matrix.mode }}" -eq "self"
+
+          if ($portable) {
+            $type = "portable"
+          } else {
+            $type = "framework-dependent"
+          }
+
+          $zipName = "SystemMonitoring-${{ matrix.runtime }}-$type.zip"
+
           Compress-Archive `
             -Path publish/${{ matrix.runtime }}-${{ matrix.mode }}\* `
-            -DestinationPath SystemMonitoring-${{ matrix.runtime }}-${{ matrix.mode }}.zip
+            -DestinationPath $zipName
 
-      - name: Upload to GitHub Release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.runtime }}-${{ matrix.mode }}
+          path: SystemMonitoring-*.zip
+
+  release:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: SystemMonitoring-${{ matrix.runtime }}-${{ matrix.mode }}.zip
-          tag_name: ${{ github.ref_name }}
+          files: release/**/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
