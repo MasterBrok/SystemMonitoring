@@ -11,7 +11,8 @@
 
             <converters:WindowPercentConverter x:Key="WindowPercentConverter" />
             <converters:MonitorStatusToBoolConverter x:Key="MonitorStatusToBoolConverter" />
-            <FontFamily x:Key="Main">Cascadia Code</FontFamily>
+            <!--<FontFamily x:Key="Main">Cascadia Code</FontFamily>-->
+            <FontFamily x:Key="Main">pack://application:,,,/Themes/Fonts/#Cascadia Code</FontFamily>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Themes/Icons.xaml" />
                 <ResourceDictionary Source="/Themes/Colors.xaml" />

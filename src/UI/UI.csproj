@@ -13,6 +13,7 @@
 
 	<ItemGroup>
 	  <None Remove="icon.ico" />
+	  <None Remove="Themes\Fonts\CASCADIACODE.TTF" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -28,6 +29,12 @@
 		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.2.3" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
 
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="Themes\Fonts\CASCADIACODE.TTF">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Resource>
 	</ItemGroup>
 
 

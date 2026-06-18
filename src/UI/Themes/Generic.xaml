@@ -252,10 +252,10 @@
                             Orientation="Horizontal">
                             <StackPanel VerticalAlignment="Center">
                                 <Image
-                                    Width="23"
+                                    Width="25"
                                     Height="22"
                                     Source="{TemplateBinding Icon}"
-                                    Stretch="Fill" />
+                                    Stretch="Uniform" />
                             </StackPanel>
                             <StackPanel Margin="6,0" HorizontalAlignment="Center">
                                 <TextBlock
