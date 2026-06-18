@@ -23,7 +23,7 @@ public sealed class ApplicationCloseCommand : ICommand
     {
         try
         {
-            monitor.Stop();
+            monitor.Dispose();
             Application.Current.MainWindow.Close();
         }
         catch (Exception)

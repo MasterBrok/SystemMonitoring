@@ -4,7 +4,7 @@ using UI.Models;
 
 namespace UI.Services;
 
-public interface IMonitor
+public interface IMonitor  : IDisposable
 {
     void Start(int processId, List<FilterMonitorType> filters);
     void Stop();

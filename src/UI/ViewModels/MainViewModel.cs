@@ -227,6 +227,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            if (SelectedProcess is null || filters.Count == 0)
+                return;
+
             items.Clear();
             _monitor.Notify -= _monitor_Notify;
             _monitor.Notify += _monitor_Notify;

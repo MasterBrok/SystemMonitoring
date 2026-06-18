@@ -8,7 +8,7 @@ using UI.Events;
 using UI.Services;
 namespace UI.Services;
 
-public sealed class Monitor : IMonitor, IDisposable
+public sealed class Monitor : IMonitor
 {
     private TraceEventSession _session;
     private Channel<FileRawEventArgs> _queue;
@@ -118,7 +118,6 @@ public sealed class Monitor : IMonitor, IDisposable
                 return;
 
             _cts?.Cancel();
-            //_session?.Dispose();
             _queue?.Writer.TryComplete();
         
         }
@@ -183,7 +182,7 @@ public sealed class Monitor : IMonitor, IDisposable
                 EventType.Created,
                 data.TimeStamp,
                 data.FileName,
-                data.EventName,
+                data.FileAttributes.ToString(),
                 data);
         };
 
@@ -198,6 +197,7 @@ public sealed class Monitor : IMonitor, IDisposable
                 data.EventName,
                 data);
         };
+
 
         _session.Source.Kernel.FileIORename += data =>
         {

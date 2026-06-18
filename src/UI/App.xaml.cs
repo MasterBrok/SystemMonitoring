@@ -17,8 +17,10 @@ namespace UI
     {
         private IServiceProvider _serviceProvider;
         public const string SessionName = "system_monitoring";
+
         protected override void OnStartup(StartupEventArgs e)
         {
+
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
             _serviceProvider = serviceCollection.BuildServiceProvider();
@@ -59,6 +61,10 @@ namespace UI
             }
         }
 
+        private void Application_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            MessageBox.Show(e.Exception.Message);
+        }
     }
 
 }
