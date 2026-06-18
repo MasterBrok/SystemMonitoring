@@ -1,0 +1,590 @@
+﻿<Window
+    x:Class="UI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behavior="clr-namespace:UI.Behaviors"
+    xmlns:cc="clr-namespace:UI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:en="clr-namespace:UI.Enums"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:local="clr-namespace:UI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="clr-namespace:UI.Events"
+    xmlns:vm="clr-namespace:UI.ViewModels"
+    Title="App"
+    Width="{Binding Source={x:Static SystemParameters.PrimaryScreenWidth}, Converter={StaticResource WindowPercentConverter}, Mode=OneTime}"
+    Height="{Binding Source={x:Static SystemParameters.PrimaryScreenHeight}, Converter={StaticResource WindowPercentConverter}, Mode=OneTime}"
+    MinWidth="900"
+    MinHeight="620"
+    AllowsTransparency="True"
+    Background="Transparent"
+    ResizeMode="CanResizeWithGrip"
+    ShowInTaskbar="True"
+    UseLayoutRounding="True"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None"
+    mc:Ignorable="d">
+
+    <Border Background="{StaticResource Brush.Background.Main}" CornerRadius="10">
+
+        <Grid Margin="15,5,15,15">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid Margin="0,0,0,0">
+                <i:Interaction.Behaviors>
+                    <behavior:WindowDragBehavior />
+                </i:Interaction.Behaviors>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    Margin="20,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource TextBlock1}"
+                    Text="System Monitoring" />
+                <StatusBar
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="Transparent">
+
+                    <cc:ButtonIcon
+                        Width="25"
+                        Height="25"
+                        Margin="0"
+                        Command="{Binding Minimize}"
+                        Icon="{StaticResource Minimize}" />
+                    <cc:ButtonIcon
+                        Width="25"
+                        Height="25"
+                        Command="{Binding Close}"
+                        Icon="{StaticResource Close}" />
+
+                </StatusBar>
+
+                <!--<StackPanel
+                      Grid.Column="1"
+                      HorizontalAlignment="Right"
+                      Orientation="Horizontal">
+                    <cc:ButtonIcon Icon="{StaticResource Minimize}" />
+                    <cc:ButtonIcon Icon="{StaticResource Close}" />
+                </StackPanel>-->
+            </Grid>
+
+
+            <Border
+                Grid.Row="1"
+                Margin="0,0,0,10"
+                Padding="10"
+                Background="{StaticResource Brush.Background.Secondary}"
+                CornerRadius="10">
+                <WrapPanel VerticalAlignment="Center">
+                    <TextBlock
+                        Margin="0,0,10,0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource TextBlock1}">
+                        Select Process:
+                    </TextBlock>
+
+                    <cc:FilterableComboBox
+                        x:Name="comProcesses"
+                        DisplayMemberPath="Name"
+                        IsEditable="True"
+                        IsEnabled="{Binding CanStart, UpdateSourceTrigger=PropertyChanged}"
+                        IsTextSearchEnabled="False"
+                        ItemsSource="{Binding Processes}"
+                        SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
+                        StaysOpenOnEdit="True" />
+
+
+                    <cc:MonitorButton
+                        Width="70"
+                        Margin="0,0,10,0"
+                        Command="{Binding UpdateProcessesCommand}"
+                        IsEnabled="{Binding CanStart, UpdateSourceTrigger=PropertyChanged}"
+                        MonitorTemplate="Update" />
+
+                    <cc:MonitorButton
+                        x:Name="btnStartMonitoring"
+                        Margin="0,0,10,0"
+                        Command="{Binding StartCommand}"
+                        Content="Start Monitoring"
+                        IsEnabled="{Binding CanStart, UpdateSourceTrigger=PropertyChanged}"
+                        MonitorTemplate="Start" />
+
+                    <cc:MonitorButton
+                        x:Name="btnStopMonitoring"
+                        Margin="0,0,10,0"
+                        Command="{Binding StopCommand}"
+                        Content="Stop Monitoring"
+                        IsEnabled="{Binding CanStop, UpdateSourceTrigger=PropertyChanged}"
+                        MonitorTemplate="Stop" />
+                </WrapPanel>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.Resources>
+                    <Style TargetType="Separator">
+                        <Setter Property="Width" Value="200" />
+                        <Setter Property="Margin" Value="5" />
+                        <Setter Property="Background" Value="{DynamicResource Brush.Accent.Blue}" />
+                    </Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Margin" Value="10" />
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="190" />
+                    <ColumnDefinition Width="4*" />
+                </Grid.ColumnDefinitions>
+                <Border
+                    Margin="0,0,10,0"
+                    Background="{StaticResource Brush.Background.Secondary}"
+                    CornerRadius="10">
+                    <StackPanel Margin="10">
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock
+                                FontFamily="{StaticResource Main}"
+                                FontSize="14"
+                                Foreground="{StaticResource Brush.Text.Header}">
+                                PROCESS INFORMATION
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel>
+                            <Label
+                                Padding="0,5"
+                                Content="{Binding SelectedProcess.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                FontFamily="{StaticResource Main}"
+                                FontSize="18"
+                                Foreground="{StaticResource Brush.Text.Primary}" />
+                            <TextBlock
+                                Margin="0,5"
+                                FontFamily="{StaticResource Main}"
+                                FontSize="14">
+                                <Run Foreground="{StaticResource Brush.Text.Muted}">PID:</Run>
+                                <Run Foreground="{StaticResource Brush.Text.Header}" Text="{Binding SelectedProcess.Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </TextBlock>
+                        </StackPanel>
+
+                        <Separator />
+
+                        <StackPanel>
+                            <StackPanel.Resources>
+                                <Style x:Key="Title" TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="{DynamicResource Main}" />
+                                    <Setter Property="Margin" Value="0,5" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+                                </Style>
+                                <Style x:Key="Value" TargetType="Run">
+                                    <Setter Property="FontFamily" Value="{DynamicResource Main}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                                </Style>
+                            </StackPanel.Resources>
+                            <TextBlock Style="{StaticResource Title}">
+                                CPU Usage:<Run Style="{StaticResource Value}" Text="{Binding ProcessStats.CPU, StringFormat={} {0:F1}%}" />
+                            </TextBlock>
+
+                            <TextBlock Style="{StaticResource Title}">
+                                Memory Usage:<Run Style="{StaticResource Value}" Text="{Binding ProcessStats.Memory, StringFormat={} {0:F1}%}" />
+                            </TextBlock>
+
+                        </StackPanel>
+
+                        <Separator />
+
+                        <StackPanel Margin="0,20,0,10">
+                            <TextBlock
+                                FontFamily="{StaticResource Main}"
+                                FontSize="14"
+                                Foreground="{StaticResource Brush.Text.Header}">
+                                STATISTICS
+                            </TextBlock>
+                        </StackPanel>
+
+                        <WrapPanel HorizontalAlignment="Center">
+                            <cc:ReportControl
+                                Title="File Readed"
+                                Foreground="{StaticResource Brush.Foreground.Data.Read}"
+                                Icon="{StaticResource Read}"
+                                Value="{Binding Counters[Readed].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="File Created"
+                                Foreground="{StaticResource Brush.Foreground.Data.Create}"
+                                Icon="{StaticResource Create}"
+                                Value="{Binding Counters[Created].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="File Deleted"
+                                Foreground="{StaticResource Brush.Foreground.Data.Delete}"
+                                Icon="{StaticResource Delete}"
+                                Value="{Binding Counters[Deleted].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="File Renamed"
+                                Foreground="{StaticResource Brush.Foreground.Data.Rename}"
+                                Icon="{StaticResource Rename}"
+                                Value="{Binding Counters[Renamed].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="File Writed"
+                                Foreground="{StaticResource Brush.Foreground.Data.Write}"
+                                Icon="{StaticResource Write}"
+                                Value="{Binding Counters[Writed].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="Sended"
+                                Foreground="{StaticResource Brush.Foreground.Data.Send}"
+                                Icon="{StaticResource Send}"
+                                Value="{Binding Counters[Sent].Count, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <cc:ReportControl
+                                Title="Received"
+                                Foreground="{StaticResource Brush.Foreground.Data.Receive}"
+                                Icon="{StaticResource Receive}"
+                                Value="{Binding Counters[Recieved].Count, UpdateSourceTrigger=PropertyChanged}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+                <Grid x:Name="grdEvent" Grid.Column="1">
+                    <DockPanel>
+
+                        <DockPanel.Resources>
+
+
+                            <!--<x:Array x:Key="SampleEvents" Type="{x:Type model:FileRawEventArgs}">
+
+                                <model:FileRawEventArgs
+                                    Detail="File Created"
+                                    EventType="Created"
+                                    Process="chrome.exe (12348)"
+                                    Time="2025-06-11T12:10:23"
+                                    FileNameValue="C:\Temp\file1.txt" />
+
+                            </x:Array>-->
+
+                        </DockPanel.Resources>
+                        <Border
+                            Padding="10"
+                            VerticalAlignment="Top"
+                            Background="{StaticResource Brush.Background.Secondary}"
+                            CornerRadius="10"
+                            DockPanel.Dock="Top">
+                            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Filters}">
+
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel HorizontalAlignment="Center" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+
+
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+
+                                            <cc:FilterControl
+                                                Background="{Binding Background}"
+                                                Content="{Binding Text}"
+                                                Foreground="{Binding Foreground}"
+                                                Icon="{Binding Icon}"
+                                                IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                PrimaryBrush="{Binding PrimaryBrush}" />
+
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+                                <!--<WrapPanel HorizontalAlignment="Center">
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Read}"
+                                        Content="Read"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Read}"
+                                        Icon="{StaticResource Read}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Read}" />
+
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Read}"
+                                        Content="Read"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Read}"
+                                        Icon="{StaticResource Read}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Read}"
+                                        Tag="{x:Static en:FilterMonitorType.Read}" />
+
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Create}"
+                                        Content="Create"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Create}"
+                                        Icon="{StaticResource Create}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Create}"
+                                        Tag="{x:Static en:FilterMonitorType.Create}" />
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Delete}"
+                                        Content="Delete"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Delete}"
+                                        Icon="{StaticResource Delete}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Delete}"
+                                        Tag="{x:Static en:FilterMonitorType.Delete}" />
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Rename}"
+                                        Content="Rename"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Rename}"
+                                        Icon="{StaticResource Rename}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Rename}"
+                                        Tag="{x:Static en:FilterMonitorType.Rename}" />
+
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Write}"
+                                        Content="Write"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Write}"
+                                        Icon="{StaticResource Write}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Write}"
+                                        Tag="{x:Static en:FilterMonitorType.Write}" />
+
+
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Send}"
+                                        Content="Send"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Send}"
+                                        Icon="{StaticResource Send}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Send}"
+                                        Tag="{x:Static en:FilterMonitorType.Send}" />
+
+
+                                    <cc:FilterControl
+                                        Background="{StaticResource Brush.Background.Data.Receive}"
+                                        Content="Receive"
+                                        Foreground="{StaticResource Brush.Foreground.Data.Receive}"
+                                        Icon="{StaticResource Receive}"
+                                        PrimaryBrush="{StaticResource Brush.Data.Receive}"
+                                        />
+
+                                    <cc:FilterControl
+                                        Background="#141a24"
+                                        Content="Network"
+                                        Foreground="#8CB890"
+                                        Icon="{StaticResource Network}"
+                                        PrimaryBrush="#3177d7"
+                                        Visibility="Collapsed" />
+
+                                </WrapPanel>-->
+                            </ScrollViewer>
+                        </Border>
+                        <DataGrid
+                            x:Name="dgEvents"
+                            AutoGenerateColumns="False"
+                            Background="#08111F"
+                            BorderBrush="White"
+                            BorderThickness="1"
+                            CanUserAddRows="False"
+                            CanUserDeleteRows="False"
+                            FontFamily="{StaticResource Main}"
+                            GridLinesVisibility="None"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding Items, UpdateSourceTrigger=PropertyChanged, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"
+                            RowHeaderWidth="0"
+                            SelectedItem="{Binding SelectedEvent}"
+                            SelectionMode="Single">
+                            <DataGrid.InputBindings>
+                                <KeyBinding
+                                    Key="C"
+                                    Command="{Binding CopyRowCommand}"
+                                    Modifiers="Control" />
+                            </DataGrid.InputBindings>
+
+                            <DataGrid.Resources>
+
+                                <!--  Column Header  -->
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="White" />
+                                    <Setter Property="FontSize" Value="14" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="BorderBrush" Value="#1D2A3A" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Padding" Value="12,10" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="DataGridColumnHeader">
+                                                <Border
+                                                    HorizontalAlignment="Center"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="10 10 0 0">
+                                                    <ContentPresenter Margin="10,5" VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+
+                                <!--  Cell  -->
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="#DCE6F5" />
+                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                                    <Setter Property="BorderBrush" Value="#162538" />
+                                    <Setter Property="Padding" Value="12,8" />
+
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="DataGridCell">
+                                                <Border
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                                    <ContentPresenter
+                                                        Margin="{TemplateBinding Padding}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+
+                                <!--  Row  -->
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="#091422" />
+                                    <Setter Property="Foreground" Value="White" />
+
+                                    <Style.Triggers>
+
+                                        <!--  Hover  -->
+
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#11233B" />
+                                        </Trigger>
+
+                                        <!--  Selected  -->
+
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#16365E" />
+                                        </Trigger>
+
+                                    </Style.Triggers>
+                                </Style>
+
+
+                            </DataGrid.Resources>
+
+                            <DataGrid.Columns>
+
+                                <DataGridTextColumn
+                                    Width="Auto"
+                                    Binding="{Binding Time, StringFormat=HH:mm:ss.fff}"
+                                    Header="Time" />
+
+                                <DataGridTemplateColumn
+                                    Width=".3*"
+                                    CanUserSort="True"
+                                    Header="Event Type"
+                                    SortMemberPath="EventType">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    FontFamily="{DynamicResource Main}"
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="White"
+                                                    Text="{Binding EventType}" />
+
+                                                <Border CornerRadius="4">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Opacity" Value=".8" />
+                                                            <Setter Property="Effect">
+                                                                <Setter.Value>
+                                                                    <BlurEffect
+                                                                        KernelType="Gaussian"
+                                                                        Radius="19"
+                                                                        RenderingBias="Quality" />
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Setter Property="Background" Value="#444" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Created">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Create}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Renamed">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Rename}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Readed">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Read}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Writed">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Write}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Deleted">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Delete}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Connected">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Connect}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Sent">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Send}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Recieved">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Data.Receive}" />
+                                                                </DataTrigger>
+
+                                                                <DataTrigger Binding="{Binding EventType}" Value="Other">
+                                                                    <Setter Property="Background" Value="{DynamicResource Brush.Text.Primary}" />
+                                                                </DataTrigger>
+
+                                                            </Style.Triggers>
+
+                                                        </Style>
+                                                    </Border.Style>
+
+
+
+                                                </Border>
+
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn
+                                    Width="Auto"
+                                    Binding="{Binding Process}"
+                                    Header="Process" />
+
+                                <DataGridTextColumn
+                                    Width="2*"
+                                    Binding="{Binding FileName}"
+                                    Header="Target Path / Address" />
+
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding Detail}"
+                                    Header="Details" />
+
+                            </DataGrid.Columns>
+
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </Grid>
+
+
+        </Grid>
+    </Border>
+</Window>
