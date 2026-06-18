@@ -15,6 +15,9 @@ jobs:
     strategy:
       matrix:
         runtime: [win-x64, win-x86]
+        mode:
+          - self
+          - framework
 
     steps:
       - name: Checkout code
@@ -23,22 +26,42 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore
         run: dotnet restore src/UI/UI.csproj
 
       - name: Publish
-        run: dotnet publish src/UI/UI.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -o publish/${{ matrix.runtime }}
+        shell: pwsh
+        run: |
+          if ("${{ matrix.mode }}" -eq "self") {
+            dotnet publish src/UI/UI.csproj `
+              -c Release `
+              -r ${{ matrix.runtime }} `
+              --self-contained true `
+              -p:PublishSingleFile=true `
+              -o publish/${{ matrix.runtime }}-${{ matrix.mode }}
+          }
+          else {
+            dotnet publish src/UI/UI.csproj `
+              -c Release `
+              -r ${{ matrix.runtime }} `
+              --self-contained false `
+              -p:PublishSingleFile=true `
+              -o publish/${{ matrix.runtime }}-${{ matrix.mode }}
+          }
 
       - name: Zip output
+        shell: pwsh
         run: |
-          Compress-Archive -Path publish/${{ matrix.runtime }}\* -DestinationPath SystemMonitoring-${{ matrix.runtime }}.zip
+          Compress-Archive `
+            -Path publish/${{ matrix.runtime }}-${{ matrix.mode }}\* `
+            -DestinationPath SystemMonitoring-${{ matrix.runtime }}-${{ matrix.mode }}.zip
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: SystemMonitoring-${{ matrix.runtime }}.zip
+          files: SystemMonitoring-${{ matrix.runtime }}-${{ matrix.mode }}.zip
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
