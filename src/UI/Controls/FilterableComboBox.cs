@@ -6,6 +6,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 
 namespace UI.Controls;
+
 public class FilterableComboBox : ComboBox
 {
     public bool OnlyValuesInList
@@ -40,7 +41,8 @@ public class FilterableComboBox : ComboBox
         StaysOpenOnEdit = true;
         IsReadOnly = false;
 
-        Loaded += (s, e) => {
+        Loaded += (s, e) =>
+        {
             if (EditableTextBox != null)
                 new TextBoxBaseUserChangeTracker(EditableTextBox).UserTextChanged += FilteredComboBox_UserTextChange;
         };
@@ -98,6 +100,8 @@ public class FilterableComboBox : ComboBox
     public void ClearFilter()
     {
         if (string.IsNullOrEmpty(CurrentFilter)) return;
+        if (ItemsSource is null) return;
+
         CurrentFilter = "";
         CollectionViewSource.GetDefaultView(ItemsSource).Refresh();
     }
@@ -112,6 +116,7 @@ public class FilterableComboBox : ComboBox
     {
         if (TextBoxFreezed) return;
         var tb = EditableTextBox;
+
         if (tb.SelectionStart + tb.SelectionLength == tb.Text.Length)
             CurrentFilter = tb.Text.Substring(0, tb.SelectionStart).ToLower();
         else
@@ -141,7 +146,8 @@ public class FilterableComboBox : ComboBox
         if (ItemsSource == null) return;
 
         var view = CollectionViewSource.GetDefaultView(ItemsSource);
-        FreezTextBoxState(() => {
+        FreezTextBoxState(() =>
+        {
             var isDropDownOpen = IsDropDownOpen;
             //always hide because showing it enables the user to pick with up and down keys, otherwise it's not working because of the glitch in view.Refresh()
             IsDropDownOpenUC.Set(false);
@@ -198,11 +204,13 @@ public class FilterableComboBox : ComboBox
             TextBoxBase = textBoxBase;
             LastText = TextBoxBase.ToString();
 
-            textBoxBase.PreviewTextInput += (s, e) => {
+            textBoxBase.PreviewTextInput += (s, e) =>
+            {
                 IsTextInput = true;
             };
 
-            textBoxBase.TextChanged += (s, e) => {
+            textBoxBase.TextChanged += (s, e) =>
+            {
                 var isUserChange = PressedKeys.Count > 0 || IsTextInput || LastText == TextBoxBase.ToString();
                 IsTextInput = false;
                 LastText = TextBoxBase.ToString();
@@ -210,7 +218,8 @@ public class FilterableComboBox : ComboBox
                     UserTextChanged?.Invoke(this, e);
             };
 
-            textBoxBase.PreviewKeyDown += (s, e) => {
+            textBoxBase.PreviewKeyDown += (s, e) =>
+            {
                 switch (e.Key)
                 {
                     case Key.Back:
@@ -232,12 +241,14 @@ public class FilterableComboBox : ComboBox
                 }
             };
 
-            textBoxBase.PreviewKeyUp += (s, e) => {
+            textBoxBase.PreviewKeyUp += (s, e) =>
+            {
                 if (PressedKeys.Contains(e.Key))
                     PressedKeys.Remove(e.Key);
             };
 
-            textBoxBase.LostFocus += (s, e) => {
+            textBoxBase.LostFocus += (s, e) =>
+            {
                 PressedKeys.Clear();
                 IsTextInput = false;
             };

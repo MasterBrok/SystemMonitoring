@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using UI.Models;
+
 namespace UI.Services;
 
 public class ProcessMonitor
@@ -25,11 +26,11 @@ public class ProcessMonitor
 
     public async Task Start()
     {
-        while (true)
+        while (!_process.HasExited)
         {
             UpdateCpu();
             UpdateMemory();
-            
+
             await Task.Delay(1000);
         }
     }
@@ -49,10 +50,13 @@ public class ProcessMonitor
             (now - _lastTime).TotalMilliseconds;
 
 
-        Stats.CPU =
-            cpuMs /
-            (totalMs * Environment.ProcessorCount)
-            * 100;
+        if (totalMs > 0)
+        {
+            Stats.CPU =
+                cpuMs /
+                (totalMs * Environment.ProcessorCount)
+                * 100;
+        }
 
 
         _lastCpu = nowCpu;
@@ -62,10 +66,8 @@ public class ProcessMonitor
 
     private void UpdateMemory()
     {
+        _process.Refresh();
         Stats.Memory =
-            _process.WorkingSet64 /
-            1024d /
-            1024d;
+            _process.WorkingSet64 / 1024 / 1024;
     }
-
 }

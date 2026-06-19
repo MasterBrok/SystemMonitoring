@@ -161,7 +161,8 @@ public sealed class Monitor : IMonitor
 
         if (!IsAllowed(type))
             return;
-
+        if (string.IsNullOrWhiteSpace(fileName))
+            return;
 
         _queue.Writer.TryWrite(
             new FileRawEventArgs(
@@ -310,4 +311,5 @@ public sealed class Monitor : IMonitor
 
     }
     private void OnNotify(FileRawEventArgs e) { Notify?.Invoke(this, e); }
+
 }

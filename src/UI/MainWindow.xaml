@@ -156,12 +156,13 @@
                             </TextBlock>
                         </StackPanel>
                         <StackPanel>
-                            <Label
+                            <TextBlock
                                 Padding="0,5"
-                                Content="{Binding SelectedProcess.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 FontFamily="{StaticResource Main}"
                                 FontSize="18"
-                                Foreground="{StaticResource Brush.Text.Primary}" />
+                                Foreground="{StaticResource Brush.Text.Primary}"
+                                Text="{Binding SelectedProcess.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                TextWrapping="Wrap" />
                             <TextBlock
                                 Margin="0,5"
                                 FontFamily="{StaticResource Main}"
@@ -190,7 +191,7 @@
                             </TextBlock>
 
                             <TextBlock Style="{StaticResource Title}">
-                                Memory Usage:<Run Style="{StaticResource Value}" Text="{Binding ProcessStats.Memory, StringFormat={} {0:F1}%}" />
+                                Memory Usage:<Run Style="{StaticResource Value}" Text="{Binding ProcessStats.Memory, StringFormat={} {0:F1}MB}" />
                             </TextBlock>
 
                         </StackPanel>
